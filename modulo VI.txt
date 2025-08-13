@@ -365,4 +365,52 @@ sudo nano /etc/ssh/sshd_config
 # AuthenticationMethods password,keyboard-interactive
 
 sudo systemctl restart sshd
+# Instalar dependencias
+sudo dnf install -y snort snort-rules-default
+
+# Crear directorio de logs (si no existe)
+sudo mkdir -p /var/log/snort
+sudo chown snort:snort /var/log/snort
+
+# Copiar archivo de configuración base
+sudo cp /etc/snort/snort.lua /etc/snort/snort_custom.lua
+sudo nano /etc/snort/snort_custom.lua
+
+-- Detectar SSH (22)
+alert tcp any any -> any 22 (msg:"SSH connection detected"; sid:1000001; rev:1;)
+
+-- Detectar HTTP (80)
+alert tcp any any -> any 80 (msg:"HTTP connection detected"; sid:1000002; rev:1;)
+
+-- Detectar ICMP
+alert icmp any any -> any any (msg:"ICMP packet detected"; sid:1000003; rev:1;)
+
+sudo snort -A console -c /etc/snort/snort_custom.lua -i eth0
+
+# Iniciar y habilitar firewalld
+sudo systemctl enable --now firewalld
+
+# Bloquear SSH, HTTP y SMB (22, 80, 445)
+sudo firewall-cmd --permanent --add-port=22/tcp --remove-port=22/tcp
+sudo firewall-cmd --permanent --add-port=80/tcp --remove-port=80/tcp
+sudo firewall-cmd --permanent --add-port=445/tcp --remove-port=445/tcp
+
+# Bloquear ICMP (ping)
+sudo firewall-cmd --permanent --add-icmp-block=echo-request
+
+# Aplicar cambios
+sudo firewall-cmd --reload
+
+# Verificar reglas aplicadas
+sudo firewall-cmd --list-all
+
+# SSH
+ssh usuario@IP_ORACLE_LINUX
+
+# HTTP
+curl http://IP_ORACLE_LINUX
+
+# ICMP
+ping IP_ORACLE_LINUX
+
 
